@@ -41,7 +41,7 @@ def plotData(classA, classB):
     return
 
 # Plots the initial data points and their class by color
-def plotDecisionBoundary(classA, classB, non_zero_alpha):
+def plotDecisionBoundary(classA, classB, non_zero_alpha, kernel):
 
     pylab.hold(True)
     pylab.plot([p[0] for p in classA],[p[1] for p in classA], "bo" ) 
@@ -50,21 +50,21 @@ def plotDecisionBoundary(classA, classB, non_zero_alpha):
 
     xrange=numpy.arange(-4, 4, 0.05) 
     yrange=numpy.arange(-4, 4, 0.05)
-    grid=matrix([[indicator(non_zero_alpha,[x,y,1.0]) for y in yrange] for x in xrange])
+    grid=matrix([[indicator(non_zero_alpha,[x,y,1.0], kernel) for y in yrange] for x in xrange])
 
     pylab.contour(xrange, yrange, grid ,(-1.0, 0.0, 1.0), colors=("red", "black", "blue"), linewidths=(1, 3, 1))
     pylab.show()
     return
 
 # ti and tj represents the target class for datapoint i and j.
-def buildPmatrix(data):
+def buildPmatrix(data, kernel):
 
     P = numpy.zeros((len(data), len(data)))
     for i in range(0, len(data)):
         ignore, ignore, ti = data[i]
         for j in range(0, len(data)):
             ignore, ignore, tj = data[j]
-            P[i, j] = ti * tj * kernelFunction(data[i], data[j])
+            P[i, j] = ti * tj * kernelFunction(data[i], data[j], kernel)
 
     return P
 
@@ -108,21 +108,27 @@ def sigmoidKernel(point1, point2, k, delta):
 
 
 # Define here what kernel function you want to use for the program!!! <--- KERNEL FUNCTION
-def kernelFunction(point1, point2):
-  power = 2;
-  sigma = 2;
-  k = 0.005;
-  delta = 0.01;
+def kernelFunction(point1, point2, kernel):
+    power = 2;
+    sigma = 2;
+    k = 0.005;
+    delta = 0.01;
 
-  #return linearKernel(point1, point2)
-  return polynomialKernel(point1, point2, power)
-  #return radialKernel(point1, point2, sigma)
-  #return sigmoidKernel(point1, point2, k, delta)
+    if kernel == 0:
+        ret = linearKernel(point1, point2)
+    elif kernel == 1:
+        ret = polynomialKernel(point1, point2, power)
+    elif kernel == 2:
+        ret = radialKernel(point1, point2, sigma)
+    elif kernel == 3:
+        ret = sigmoidKernel(point1, point2, k, delta)
 
-def indicator(non_zero_alpha, points):
+    return ret
+
+def indicator(non_zero_alpha, points, kernel):
     sum = 0
     for coordinates, alpha in non_zero_alpha:
-      sum = sum + alpha * coordinates[2] * kernelFunction(coordinates, points) 
+      sum = sum + alpha * coordinates[2] * kernelFunction(coordinates, points, kernel)
 
     return sum
 
@@ -134,18 +140,23 @@ data, classA, classB = generateTestData()
 
 plotData(classA, classB)
 
+linearKern = 0
+polyKern = 1
+radialKern = 2
+sigKern = 3
 
-P = buildPmatrix(data)
-q = numpy.ones(len(data)) * -1
-h = numpy.zeros(len(data))
-G = numpy.diag(q)
+for kernel in range(0, 4):
+    P = buildPmatrix(data, kernel)
+    q = numpy.ones(len(data)) * -1
+    h = numpy.zeros(len(data))
+    G = numpy.diag(q)
 
-r = qp(matrix(P) , matrix(q) , matrix(G) , matrix(h))
-alpha = list(r['x'])
+    r = qp(matrix(P) , matrix(q) , matrix(G) , matrix(h))
+    alpha = list(r['x'])
 
-non_zero_alpha = findNonZeroAlpha(alpha, data)
+    non_zero_alpha = findNonZeroAlpha(alpha, data)
 
-plotDecisionBoundary(classA, classB, non_zero_alpha)
+    plotDecisionBoundary(classA, classB, non_zero_alpha, kernel)
 
 
 
