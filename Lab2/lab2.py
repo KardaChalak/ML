@@ -5,7 +5,7 @@ from cvxopt.base import matrix
 ###### FUNCTIONS ######
 
 # Generates the data
-def generateTestData():
+def generateRandomTestData():
 
     classA = [(random.normalvariate(-1.5, 1),
                random.normalvariate(0.5, 1),
@@ -25,6 +25,110 @@ def generateTestData():
     random.shuffle(data)
 
     return data, classA, classB
+
+def generateLinearSeperationData():
+    classA = [(random.normalvariate(0, 0.5),
+               random.normalvariate(2, 0.5),
+               1.0)
+              for i in range(10)]
+
+    classB = [(random.normalvariate(0, 0.5),
+               random.normalvariate(-2, 0.5),
+               -1.0)
+              for i in range(10)]
+
+    data = classA + classB
+    random.shuffle(data)
+
+    return data, classA, classB
+
+def generateCircularSeperationData():
+    classA = [(random.normalvariate(0, 0.5),
+               random.normalvariate(0, 0.5),
+               1.0)
+              for i in range(10)]
+
+    classB = [(random.normalvariate(0, 0.5),
+               random.normalvariate(2, 0.5),
+               -1.0)
+              for i in range(2)] + \
+             [(random.normalvariate(2, 0.5),
+               random.normalvariate(0, 0.5),
+               -1.0)
+              for i in range(3)] + \
+             [(random.normalvariate(0, 0.5),
+               random.normalvariate(-2, 0.5),
+               -1.0)
+              for i in range(2)] + \
+             [(random.normalvariate(-2, 0.5),
+               random.normalvariate(0, 0.5),
+               -1.0)
+              for i in range(3)]
+
+    data = classA + classB
+    random.shuffle(data)
+
+    return data, classA, classB
+
+def generateTimeGlassSeperationData():
+    classA = [(random.normalvariate(0, 0.5),
+               random.normalvariate(0, 0.5),
+               1.0)
+              for i in range(2)] + \
+             [(random.normalvariate(0, 0.5),
+               random.normalvariate(2, 1),
+               1.0)
+              for i in range(4)] + \
+             [(random.normalvariate(0, 0.5),
+               random.normalvariate(-2, 1),
+               1.0)
+              for i in range(4)]
+
+    classB = [(random.normalvariate(1, 0.1),
+               random.normalvariate(0, 0.3),
+               -1.0)
+              for i in range(2)] + \
+             [(random.normalvariate(2, 0.5),
+               random.normalvariate(0, 0.5),
+               -1.0)
+              for i in range(3)] + \
+             [(random.normalvariate(-1, 0.1),
+               random.normalvariate(0, 0.3),
+               -1.0)
+              for i in range(2)] + \
+             [(random.normalvariate(-2, 0.5),
+               random.normalvariate(0, 0.5),
+               -1.0)
+              for i in range(3)]
+
+    data = classA + classB
+    random.shuffle(data)
+
+    return data, classA, classB    
+
+def generateEveryOtherSeperationData():
+    classA = [(random.normalvariate(-2, 0.1),
+               random.normalvariate(0, 1),
+               1.0)
+              for i in range(5)] + \
+             [(random.normalvariate(1, 0.1),
+               random.normalvariate(0, 1),
+               1.0)
+              for i in range(5)]
+
+    classB = [(random.normalvariate(-1, 0.1),
+               random.normalvariate(0, 1),
+               -1.0)
+              for i in range(5)] + \
+             [(random.normalvariate(2, 0.1),
+               random.normalvariate(0, 1),
+               -1.0)
+              for i in range(5)]
+
+    data = classA + classB
+    random.shuffle(data)
+
+    return data, classA, classB    
 
 # Plots the initial data points and their class by color
 def plotData(classA, classB):
@@ -109,10 +213,10 @@ def sigmoidKernel(point1, point2, k, delta):
 
 # Define here what kernel function you want to use for the program!!! <--- KERNEL FUNCTION
 def kernelFunction(point1, point2, kernel):
-    power = 2;
-    sigma = 2;
-    k = 0.005;
-    delta = 0.01;
+    power = 5; # polynomial
+    sigma = 2; # radial
+    k = 0.01; # sigmoid
+    delta = 0.0005; # sigmoid
 
     if kernel == 0:
         ret = linearKernel(point1, point2)
@@ -136,14 +240,9 @@ def indicator(non_zero_alpha, points, kernel):
 
 ##### Main script #####
 
-data, classA, classB = generateTestData()
+data, classA, classB = generateEveryOtherSeperationData()
 
 plotData(classA, classB)
-
-linearKern = 0
-polyKern = 1
-radialKern = 2
-sigKern = 3
 
 for kernel in range(0, 4):
     P = buildPmatrix(data, kernel)
