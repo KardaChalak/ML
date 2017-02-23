@@ -240,25 +240,27 @@ def indicator(non_zero_alpha, points, kernel):
 
 ##### Main script #####
 
-data, classA, classB = generateEveryOtherSeperationData()
+data, classA, classB = generateLinearSeperationData()
 
 plotData(classA, classB)
 
-for kernel in range(0, 4):
+for kernel in range(0, 1):
     P = buildPmatrix(data, kernel)
     q = numpy.ones(len(data)) * -1
     h = numpy.zeros(len(data))
     G = numpy.diag(q)
 
-    r = qp(matrix(P) , matrix(q) , matrix(G) , matrix(h))
-    alpha = list(r['x'])
+    # adding slack
+    qSlack = numpy.ones(len(data)) * 1 # C value
+    G2 = numpy.diag(qSlack)
+    GSlack = numpy.concatenate((G, G2), axis=0)
+    hSlack = numpy.zeros(len(data) * 2)
 
+    #r = qp(matrix(P) , matrix(q) , matrix(G) , matrix(h))
+    r = qp(matrix(P) , matrix(q) , matrix(GSlack) , matrix(hSlack))
+    alpha = list(r['x'])
+    print(alpha)
     non_zero_alpha = findNonZeroAlpha(alpha, data)
 
     plotDecisionBoundary(classA, classB, non_zero_alpha, kernel)
-
-
-
-
-
 
