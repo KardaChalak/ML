@@ -213,10 +213,10 @@ def sigmoidKernel(point1, point2, k, delta):
 
 # Define here what kernel function you want to use for the program!!! <--- KERNEL FUNCTION
 def kernelFunction(point1, point2, kernel):
-    power = 5; # polynomial
-    sigma = 2; # radial
-    k = 0.01; # sigmoid
-    delta = 0.0005; # sigmoid
+    power = 5 # polynomial
+    sigma = 2 # radial
+    k = 0.01 # sigmoid
+    delta = 0.0005 # sigmoid
 
     if kernel == 0:
         ret = linearKernel(point1, point2)
