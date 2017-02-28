@@ -1,4 +1,4 @@
-#!/usr/bin/python
+
 # coding: utf-8
 
 # # Lab 3: Bayes Classifier and Boosting
@@ -10,23 +10,29 @@
 # If you have Python and pip, you can install Jupyter with `sudo pip install jupyter`. Otherwise you can follow the instruction on <http://jupyter.readthedocs.org/en/latest/install.html>.
 # 
 # And that is everything you need! Now use a terminal to go into the folder with the provided lab files. Then run `jupyter notebook` to start a session in that folder. Click `lab3.ipynb` in the browser window that appeared to start this very notebook. You should click on the cells in order and either press `ctrl+enter` or `run cell` in the toolbar above to evaluate all the expressions.
+# 
+# Be sure to put `%matplotlib inline` at the top of every code cell where you call plotting functions to get the resulting plots inside the document.
 
 # ## Import the libraries
 # 
 # In Jupyter, select the cell below and press `ctrl + enter` to import the needed libraries.
 # Check out `labfuns.py` if you are interested in the details.
 
+# In[100]:
+
 import numpy as np
 from scipy import misc
 from imp import reload
 from labfuns import *
 import random
+import math 
 
 
 # ## Bayes classifier functions to implement
 # 
 # The lab descriptions state what each function should do.
 
+# In[294]:
 
 # NOTE: you do not need to handle the W argument for this part!
 # in: labels - N vector of class labels
@@ -45,6 +51,10 @@ def computePrior(labels, W=None):
     # TODO: compute the values of prior for each class!
     # ==========================
     
+    for jdx, iter_class in enumerate(classes):
+        idx = labels==iter_class # Returns a true or false with the lengt of y
+        idx = np.where(labels==iter_class)[0]
+        prior[jdx][0] = len(idx) / float(Npts)
     # ==========================
 
     return prior
@@ -59,16 +69,47 @@ def mlParams(X, labels, W=None):
     Npts,Ndims = np.shape(X)
     classes = np.unique(labels)
     Nclasses = np.size(classes)
+    
 
     if W is None:
         W = np.ones((Npts,1))/float(Npts)
 
     mu = np.zeros((Nclasses,Ndims))
     sigma = np.zeros((Nclasses,Ndims,Ndims))
+    Nk = np.zeros(Nclasses)
 
     # TODO: fill in the code to compute mu and sigma!
     # ==========================
+    # compute mu
     
+    for i, iter_X in enumerate(X):
+        row = X[i,:]
+        belong_class = labels[i]
+        Nk[belong_class] = Nk[belong_class] + 1
+        for j, attribute_value in enumerate(row):
+            mu[belong_class, j] = mu[belong_class, j] + attribute_value
+            
+    for i, mu_row in enumerate(mu):
+        for j, mu_value in enumerate(mu_row):
+            mu[i,j] = mu[i,j] / Nk[i]
+              
+    
+    #compute sigma
+    
+    for jdx, iter_class in enumerate(classes):
+        idx = labels==iter_class # returns true or falsewith the length of lable
+        idx = np.where(labels==iter_class)[0]
+        xlc = X[idx, :] #xlc hold all datapoints for one class
+        # iterate the class all datapoints
+        for i, data_point in enumerate(xlc):
+            #iterate the feture dimensions (attributes)
+            for j, attribute in enumerate(data_point):
+                sigma[jdx][j][j] = sigma[jdx][j][j] + math.pow(xlc[i][j] - mu[jdx][j], 2) 
+        # divide with Nk
+        for j, attribute in enumerate(mu[jdx]):
+            sigma[jdx][j][j] = sigma[jdx][j][j] / Nk[jdx]
+    
+        #print sigma
     # ==========================
 
     return mu, sigma
@@ -86,6 +127,28 @@ def classifyBayes(X, prior, mu, sigma):
 
     # TODO: fill in the code to compute the log posterior logProb!
     # ==========================
+    # iterate all classes
+    for i, sigmaK in enumerate(sigma):
+        # 1/2 * ln(det(sigma))
+        print sigmaK
+        detSigma = 0.5 * np.log(np.linalg.det(sigmaK))
+        print "detSigma"
+        print detSigma
+        
+        u = np.ones((X.shape[0], X.shape[1]))
+        u *= mu[i]
+        Xstar = X - u
+        XstarT = np.transpose(Xstar)
+        Xstar  *= 0.5
+        
+        sigmaInv = np.linalg.inv(sigmaK)
+
+        NN = np.dot( Xstar, np.dot(sigmaInv, XstarT))
+        print NN
+
+        
+        # det som är kvar är att knyta ihop det. u - NN + prior[i]
+        # NN är en 200x200 matris 
     
     # ==========================
     
@@ -97,6 +160,7 @@ def classifyBayes(X, prior, mu, sigma):
 
 # The implemented functions can now be summarized into the `BayesClassifier` class, which we will use later to test the classifier, no need to add anything else here:
 
+# In[40]:
 
 # NOTE: no need to touch this
 class BayesClassifier(object):
@@ -118,30 +182,40 @@ class BayesClassifier(object):
 # 
 # Call `genBlobs` and `plotGaussian` to verify your estimates.
 
+# In[293]:
+
+get_ipython().magic(u'matplotlib inline')
 
 X, labels = genBlobs(centers=5)
 mu, sigma = mlParams(X,labels)
 plotGaussian(X,labels,mu,sigma)
+prior = computePrior(labels)
+classifyBayes(X, prior, mu, sigma)
 
 
 # Call the `testClassifier` and `plotBoundary` functions for this part.
 
+# In[206]:
 
-#testClassifier(BayesClassifier(), dataset='iris', split=0.7)
-
-
-
-#testClassifier(BayesClassifier(), dataset='vowel', split=0.7)
+testClassifier(BayesClassifier(), dataset='iris', split=0.7)
 
 
+# In[15]:
 
-#plotBoundary(BayesClassifier(), dataset='iris',split=0.7)
+testClassifier(BayesClassifier(), dataset='vowel', split=0.7)
+
+
+# In[16]:
+
+get_ipython().magic(u'matplotlib inline')
+plotBoundary(BayesClassifier(), dataset='iris',split=0.7)
 
 
 # ## Boosting functions to implement
 # 
 # The lab descriptions state what each function should do.
 
+# In[18]:
 
 # in: base_classifier - a classifier of the type that we will boost, e.g. BayesClassifier
 #                   X - N x d matrix of N data points
@@ -201,6 +275,7 @@ def classifyBoost(X, classifiers, alphas, Nclasses):
 
 # The implemented functions can now be summarized another classifer, the `BoostClassifier` class. This class enables boosting different types of classifiers by initializing it with the `base_classifier` argument. No need to add anything here.
 
+# In[19]:
 
 # NOTE: no need to touch this
 class BoostClassifier(object):
@@ -224,72 +299,88 @@ class BoostClassifier(object):
 # 
 # Call the `testClassifier` and `plotBoundary` functions for this part.
 
+# In[20]:
 
-#testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='iris',split=0.7)
-
-
-
-#testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='vowel',split=0.7)
+testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='iris',split=0.7)
 
 
+# In[21]:
 
-#plotBoundary(BoostClassifier(BayesClassifier()), dataset='iris',split=0.7)
+testClassifier(BoostClassifier(BayesClassifier(), T=10), dataset='vowel',split=0.7)
+
+
+# In[22]:
+
+get_ipython().magic(u'matplotlib inline')
+plotBoundary(BoostClassifier(BayesClassifier()), dataset='iris',split=0.7)
 
 
 # Now repeat the steps with a decision tree classifier.
 
+# In[23]:
 
-#testClassifier(DecisionTreeClassifier(), dataset='iris', split=0.7)
-
-
-
-#testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
+testClassifier(DecisionTreeClassifier(), dataset='iris', split=0.7)
 
 
+# In[24]:
 
-#testClassifier(DecisionTreeClassifier(), dataset='vowel',split=0.7)
-
-
-
-#testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='vowel',split=0.7)
+testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
 
 
+# In[25]:
 
-#plotBoundary(DecisionTreeClassifier(), dataset='iris',split=0.7)
+testClassifier(DecisionTreeClassifier(), dataset='vowel',split=0.7)
 
 
+# In[26]:
 
-#plotBoundary(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
+testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='vowel',split=0.7)
+
+
+# In[27]:
+
+get_ipython().magic(u'matplotlib inline')
+plotBoundary(DecisionTreeClassifier(), dataset='iris',split=0.7)
+
+
+# In[34]:
+
+get_ipython().magic(u'matplotlib inline')
+plotBoundary(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='iris',split=0.7)
 
 
 # ## Bonus: Visualize faces classified using boosted decision trees
 # 
 # Note that this part of the assignment is completely voluntary! First, let's check how a boosted decision tree classifier performs on the olivetti data. Note that we need to reduce the dimension a bit using PCA, as the original dimension of the image vectors is `64 x 64 = 4096` elements.
 
+# In[28]:
 
-#testClassifier(BayesClassifier(), dataset='olivetti',split=0.7, dim=20)
+testClassifier(BayesClassifier(), dataset='olivetti',split=0.7, dim=20)
 
 
+# In[30]:
 
-#testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='olivetti',split=0.7, dim=20)
+testClassifier(BoostClassifier(DecisionTreeClassifier(), T=10), dataset='olivetti',split=0.7, dim=20)
 
 
 # You should get an accuracy around 70%. If you wish, you can compare this with using pure decision trees or a boosted bayes classifier. Not too bad, now let's try and classify a face as belonging to one of 40 persons!
 
+# In[33]:
 
-#X,y,pcadim = fetchDataset('olivetti') # fetch the olivetti data
-#xTr,yTr,xTe,yTe,trIdx,teIdx = trteSplitEven(X,y,0.7) # split into training and testing
-#pca = decomposition.PCA(n_components=20) # use PCA to reduce the dimension to 20
-#pca.fit(xTr) # use training data to fit the transform
-#xTrpca = pca.transform(xTr) # apply on training data
-#xTepca = pca.transform(xTe) # apply on test data
+get_ipython().magic(u'matplotlib inline')
+X,y,pcadim = fetchDataset('olivetti') # fetch the olivetti data
+xTr,yTr,xTe,yTe,trIdx,teIdx = trteSplitEven(X,y,0.7) # split into training and testing
+pca = decomposition.PCA(n_components=20) # use PCA to reduce the dimension to 20
+pca.fit(xTr) # use training data to fit the transform
+xTrpca = pca.transform(xTr) # apply on training data
+xTepca = pca.transform(xTe) # apply on test data
 # use our pre-defined decision tree classifier together with the implemented
 # boosting to classify data points in the training data
-#classifier = BoostClassifier(DecisionTreeClassifier(), T=10).trainClassifier(xTrpca, yTr)
-#yPr = classifier.classify(xTepca)
+classifier = BoostClassifier(DecisionTreeClassifier(), T=10).trainClassifier(xTrpca, yTr)
+yPr = classifier.classify(xTepca)
 # choose a test point to visualize
-#testind = random.randint(0, xTe.shape[0]-1)
+testind = random.randint(0, xTe.shape[0]-1)
 # visualize the test point together with the training points used to train
 # the class that the test point was classified to belong to
-#visualizeOlivettiVectors(xTr[yTr == yPr[testind],:], xTe[testind,:])
+visualizeOlivettiVectors(xTr[yTr == yPr[testind],:], xTe[testind,:])
 
